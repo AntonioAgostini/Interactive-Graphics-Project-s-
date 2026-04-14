@@ -1,3 +1,6 @@
+
+//@author: Agostini Antonio - 1995653
+
 // This function takes the translation and two rotation angles (in radians) as input arguments.
 // The two rotations are applied around x and y axes.
 // It returns the combined 4x4 transformation matrix as an array in column-major order.
@@ -6,38 +9,39 @@ function GetModelViewMatrix( translationX, translationY, translationZ, rotationX
 {
 	// [TO-DO] Modify the code below to form the transformation matrix.
 
-	// Translation matrix (column-major)
-	var trans = [
+
+	var transl = [
 		1, 0, 0, 0,
 		0, 1, 0, 0,
 		0, 0, 1, 0,
 		translationX, translationY, translationZ, 1
 	];
 
-	// Rotation around X axis (column-major)
-	var cx = Math.cos(rotationX);
-	var sx = Math.sin(rotationX);
+
+	var cosx = Math.cos(rotationX);
+	var sinx = Math.sin(rotationX);
 	var rotX = [
 		1,  0,   0,  0,
-		0,  cx,  sx, 0,
-		0, -sx,  cx, 0,
+		0,  cosx,  sinx, 0,
+		0, -sinx,  cosx, 0,
 		0,  0,   0,  1
 	];
 
-	// Rotation around Y axis (column-major)
-	var cy = Math.cos(rotationY);
-	var sy = Math.sin(rotationY);
+
+	var cosy = Math.cos(rotationY);
+	var siny = Math.sin(rotationY);
 	var rotY = [
-		 cy, 0, -sy, 0,
+		 cosy, 0, -siny, 0,
 		  0, 1,   0, 0,
-		 sy, 0,  cy, 0,
+		 siny, 0,  cosy, 0,
 		  0, 0,   0, 1
 	];
 
-	// Combined: trans * rotY * rotX
-	var mv = MatrixMult( trans, MatrixMult( rotY, rotX ) );
+	// Combined: transl * rotY * rotX
+	var mv = MatrixMult( transl, MatrixMult( rotY, rotX ) );
 	return mv;
 }
+
 
 
 // [TO-DO] Complete the implementation of the following class.
@@ -49,41 +53,39 @@ class MeshDrawer
 	{
 		// [TO-DO] initializations
 
-		// Compile the shader program
+		// We compile the shader program
 		this.prog = InitShaderProgram( meshVS, meshFS );
 
-		// Get uniform locations
-		this.mvpLoc        = gl.getUniformLocation( this.prog, 'mvp' );
-		this.mvLoc         = gl.getUniformLocation( this.prog, 'mv' );
+		this.mvpLoc = gl.getUniformLocation( this.prog, 'mvp' );
+		this.mvLoc = gl.getUniformLocation( this.prog, 'mv' );
 		this.normalMatLoc  = gl.getUniformLocation( this.prog, 'normalMat' );
-		this.swapYZLoc     = gl.getUniformLocation( this.prog, 'swapYZ' );
-		this.showTexLoc    = gl.getUniformLocation( this.prog, 'showTexture' );
-		this.lightDirLoc   = gl.getUniformLocation( this.prog, 'lightDir' );
-		this.shininessLoc  = gl.getUniformLocation( this.prog, 'shininess' );
-		this.samplerLoc    = gl.getUniformLocation( this.prog, 'texSampler' );
+		this.swapYZLoc  = gl.getUniformLocation( this.prog, 'swapYZ' );
+		this.showTexLoc  = gl.getUniformLocation( this.prog, 'showTexture' );
+		this.lightDirLoc = gl.getUniformLocation( this.prog, 'lightDirec' );
+		this.shininessLoc = gl.getUniformLocation( this.prog, 'shininessAlpha' );
+		this.samplerLoc  = gl.getUniformLocation( this.prog, 'texSampler' );
 
-		// Get attribute locations
-		this.vertPosLoc    = gl.getAttribLocation( this.prog, 'pos' );
-		this.texCoordLoc   = gl.getAttribLocation( this.prog, 'txc' );
-		this.normalLoc     = gl.getAttribLocation( this.prog, 'normal' );
+		this.vertPosLoc  = gl.getAttribLocation( this.prog, 'pos' );
+		this.texCoordLoc = gl.getAttribLocation( this.prog, 'txc' );
+		this.normalLoc  = gl.getAttribLocation( this.prog, 'normal' );
 
-		// Create vertex buffer objects
-		this.vertBuffer    = gl.createBuffer();
-		this.texBuffer     = gl.createBuffer();
-		this.normalBuffer  = gl.createBuffer();
+		this.vertBuffer = gl.createBuffer();
+		this.texBuffer  = gl.createBuffer();
+		this.normalBuffer = gl.createBuffer();
 
-		// Create and initialize texture
-		this.texture       = gl.createTexture();
+		this.texture = gl.createTexture();
 		gl.bindTexture( gl.TEXTURE_2D, this.texture );
 		gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR );
 		gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR );
 		gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT );
 		gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT );
 
-		// Default state
+        
 		this.numTriangles = 0;
 	}
 	
+
+
 	// This method is called every time the user opens an OBJ file.
 	// The arguments of this function is an array of 3D vertex positions,
 	// an array of 2D texture coordinates, and an array of vertex normals.
@@ -99,28 +101,32 @@ class MeshDrawer
 	{
 		// [TO-DO] Update the contents of the vertex buffer objects.
 		this.numTriangles = vertPos.length / 3;
-
-		// Upload vertex positions
-		gl.bindBuffer( gl.ARRAY_BUFFER, this.vertBuffer );
+		
+		gl.bindBuffer( gl.ARRAY_BUFFER,  this.vertBuffer );
 		gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(vertPos), gl.STATIC_DRAW );
-
-		// Upload texture coordinates
+		
 		gl.bindBuffer( gl.ARRAY_BUFFER, this.texBuffer );
 		gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW );
 
-		// Upload vertex normals
 		gl.bindBuffer( gl.ARRAY_BUFFER, this.normalBuffer );
 		gl.bufferData( gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW );
 	}
 	
+
+
 	// This method is called when the user changes the state of the
 	// "Swap Y-Z Axes" checkbox. 
 	// The argument is a boolean that indicates if the checkbox is checked.
 	swapYZ( swap )
 	{
-		// [TO-DO] Set the uniform parameter(s) of the vertex shader
-		gl.useProgram( this.prog );
-		gl.uniform1i( this.swapYZLoc, swap ? 1 : 0 );
+            // [TO-DO] Set the uniform parameter(s) of the vertex shader
+            gl.useProgram( this.prog );
+                if ( swap ) {
+                    gl.uniform1i( this.swapYZLoc, 1 );
+                } else {
+                    gl.uniform1i( this.swapYZLoc, 0 );
+                }
+        
 	}
 	
 	// This method is called to draw the triangular mesh.
@@ -133,27 +139,27 @@ class MeshDrawer
 		// [TO-DO] Complete the WebGL initializations before drawing
 		gl.useProgram( this.prog );
 
-		// Set transformation matrix uniforms
-		gl.uniformMatrix4fv( this.mvpLoc,       false, matrixMVP );
-		gl.uniformMatrix4fv( this.mvLoc,        false, matrixMV );
+		
+		gl.uniformMatrix4fv( this.mvpLoc, false, matrixMVP );
+		gl.uniformMatrix4fv( this.mvLoc, false, matrixMV );
 		gl.uniformMatrix3fv( this.normalMatLoc, false, matrixNormal );
 
-		// Bind and enable vertex positions
-		gl.bindBuffer( gl.ARRAY_BUFFER, this.vertBuffer );
+	
+		gl.bindBuffer( gl.ARRAY_BUFFER,  this.vertBuffer );
 		gl.vertexAttribPointer( this.vertPosLoc, 3, gl.FLOAT, false, 0, 0 );
 		gl.enableVertexAttribArray( this.vertPosLoc );
 
-		// Bind and enable texture coordinates
+	
 		gl.bindBuffer( gl.ARRAY_BUFFER, this.texBuffer );
 		gl.vertexAttribPointer( this.texCoordLoc, 2, gl.FLOAT, false, 0, 0 );
 		gl.enableVertexAttribArray( this.texCoordLoc );
 
-		// Bind and enable normals
+		
 		gl.bindBuffer( gl.ARRAY_BUFFER, this.normalBuffer );
 		gl.vertexAttribPointer( this.normalLoc, 3, gl.FLOAT, false, 0, 0 );
 		gl.enableVertexAttribArray( this.normalLoc );
 
-		// Bind texture unit 0
+		
 		gl.activeTexture( gl.TEXTURE0 );
 		gl.bindTexture( gl.TEXTURE_2D, this.texture );
 		gl.uniform1i( this.samplerLoc, 0 );
@@ -171,8 +177,8 @@ class MeshDrawer
 		// You can set the texture image data using the following command.
 		gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img );
 
-		// Generate mipmaps for better quality
-		gl.generateMipmap( gl.TEXTURE_2D );
+		// Generate mipmaps for better quality when the texture is minified.
+		gl.generateMipmap( gl.TEXTURE_2D  );
 		gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR );
 
 		// [TO-DO] Now that we have a texture, it might be a good idea to set
@@ -188,7 +194,12 @@ class MeshDrawer
 	{
 		// [TO-DO] set the uniform parameter(s) of the fragment shader to specify if it should use the texture.
 		gl.useProgram( this.prog );
-		gl.uniform1i( this.showTexLoc, show ? 1 : 0 );
+        
+		if ( show ) {
+            gl.uniform1i( this.showTexLoc, 1 );
+        } else {
+            gl.uniform1i( this.showTexLoc, 0 );
+        }
 	}
 	
 	// This method is called to set the incoming light direction
@@ -200,118 +211,114 @@ class MeshDrawer
 	}
 	
 	// This method is called to set the shininess of the material
-	setShininess( shininess )
+	setShininess( shininessAlpha )
 	{
 		// [TO-DO] set the uniform parameter(s) of the fragment shader to specify the shininess.
 		gl.useProgram( this.prog );
-		gl.uniform1f( this.shininessLoc, shininess );
+		gl.uniform1f( this.shininessLoc,  shininessAlpha );
 	}
+
 }
 
-// Vertex Shader
-// Phong shading: normals are interpolated in the fragment shader.
-// We pass to the fragment shader:
-//   - the position in camera (view) space for computing the view vector
-//   - the normal transformed into camera space via the normal matrix (inverse-transpose of MV)
+
+// VS - Phong shading: normals are interpolated in the fragment shader.
+
 var meshVS = `
-	attribute vec3 pos;
-	attribute vec2 txc;
-	attribute vec3 normal;
+    attribute vec3 pos;
+    attribute vec2 txc;
+    attribute vec3 normal;
 
-	uniform mat4 mvp;
-	uniform mat4 mv;
-	uniform mat3 normalMat;
-	uniform bool swapYZ;
 
-	varying vec3 fragPos;     // position in camera space
-	varying vec2 fragTex;     // texture coordinates
-	varying vec3 fragNormal;  // normal in camera space
+    uniform mat4 mvp;
+    uniform mat4 mv;
+    uniform mat3 normalMat;
+    uniform bool swapYZ;
 
-	void main()
-	{
-		vec3 p = pos;
-		vec3 n = normal;
 
-		// Optionally swap Y and Z axes (useful for some OBJ files)
-		if ( swapYZ ) {
-			p = vec3( p.x, p.z, p.y );
-			n = vec3( n.x, n.z, n.y );
-		}
+    varying vec3 fragPosition;
+    varying vec2 fragText; 
+    varying vec3 fragNormal;
 
-		// Transform position to camera space (for shading computations)
-		vec4 camPos = mv * vec4(p, 1.0);
-		fragPos = camPos.xyz;
 
-		// Transform normal to camera space using normal matrix (inverse-transpose of MV upper 3x3)
-		fragNormal = normalMat * n;
+    void main()
+    {
+        vec3 p = pos;
+        vec3 n = normal;
 
-		// Pass texture coords
-		fragTex = txc;
 
-		// Final clip-space position
-		gl_Position = mvp * vec4(p, 1.0);
-	}
+        if ( swapYZ ) {
+            p = vec3( p.x, p.z, p.y );
+            n = vec3( n.x, n.z, n.y );
+        }
+
+        vec4 camPos = mv * vec4(p, 1.0);
+        fragPosition = camPos.xyz;
+
+        fragNormal = normalMat * n;
+
+
+        fragText = txc;
+
+        gl_Position = mvp * vec4(p, 1.0);
+    }
 `;
 
-// Fragment Shader
-// Implements Blinn-Phong shading model in camera space:
-//   color = Kd * I * max(0, dot(n, l))  [diffuse]
-//         + Ks * I * max(0, dot(n, h))^alpha  [specular, Blinn half-vector]
-// where:
-//   l = normalize(lightDir)  -- light direction in camera space (already provided in camera space)
-//   v = normalize(-fragPos)  -- view direction (camera is at origin in camera space)
-//   h = normalize(l + v)     -- Blinn half-vector
-//   n = normalize(fragNormal)
-//   I = (1,1,1) white light intensity
-//   Kd = texture color if showTexture, else (1,1,1)
-//   Ks = (1,1,1)
-//   alpha = shininess
+
+
+//FS - Implements Blinn-Phong shading model in camera space:
+//   C = Kd * I * max(0, dot(n, l))  + Ks * I * max(0, dot(n, h))^alpha  
+//                   (diffuse)                 (specular)
 var meshFS = `
-	precision mediump float;
+    precision mediump float;
 
-	uniform bool  showTexture;
-	uniform sampler2D texSampler;
-	uniform vec3  lightDir;     // light direction in camera space (normalized by CPU or we normalize here)
-	uniform float shininess;    // Blinn-Phong exponent alpha
 
-	varying vec3 fragPos;
-	varying vec2 fragTex;
-	varying vec3 fragNormal;
+    uniform bool  showTexture;
+    uniform sampler2D texSampler;
+    uniform vec3  lightDirec;
+    uniform float shininessAlpha;
 
-	void main()
-	{
-		// Normalize vectors
-		vec3 n = normalize( fragNormal );
-		vec3 l = normalize( lightDir );
 
-		// In camera space the camera is at the origin, so view direction is -fragPos
-		vec3 v = normalize( -fragPos );
+    varying vec3 fragPosition;
+    varying vec2 fragText;
+    varying vec3 fragNormal;
 
-		// Blinn half-vector
-		vec3 h = normalize( l + v );
 
-		// Diffuse coefficient Kd: use texture if enabled, otherwise white
-		vec3 Kd;
-		if ( showTexture ) {
-			Kd = texture2D( texSampler, fragTex ).rgb;
-		} else {
-			Kd = vec3(1.0, 1.0, 1.0);
-		}
+    void main()
+    {
 
-		// Specular coefficient Ks (white) and light intensity I (white)
-		vec3 Ks = vec3(1.0, 1.0, 1.0);
-		vec3 I  = vec3(1.0, 1.0, 1.0);
+        vec3 n = normalize( fragNormal );
+        vec3 l = normalize( lightDirec );
 
-		// Diffuse term: Kd * I * max(0, n · l)
-		float diffuse = max( 0.0, dot(n, l) );
 
-		// Specular term (Blinn): Ks * I * max(0, n · h)^alpha
-		float specular = pow( max( 0.0, dot(n, h) ), shininess );
+        
+        vec3 v = normalize( -fragPosition );
 
-		// Final color = diffuse + specular
-		// (ambient is optional per README; not included as no ambient control in UI)
-		vec3 color = Kd * I * diffuse + Ks * I * specular;
+        vec3 h = normalize( l + v );
 
-		gl_FragColor = vec4( color, 1.0 );
-	}
+
+        vec3 Kd;
+        if ( showTexture ) {
+            Kd = texture2D( texSampler, fragText ).rgb;
+        } else {
+            Kd = vec3(1.0, 1.0, 1.0);
+        }
+
+
+        // Specular coefficient Ks and light intensity I (both white)
+        vec3 Ks = vec3(1.0, 1.0, 1.0);
+        vec3 I  = vec3(1.0, 1.0, 1.0);
+
+        // Diffuse term: Kd * I * max(0, n · l)
+        float diffuse = max( 0.0, dot(n, l) );
+
+        // Specular term (Blinn): Ks * I * max(0, n · h)^alpha
+        float specular = pow( max( 0.0, dot(n, h) ), shininessAlpha );
+
+        // Final color = diffuse + specular
+        vec3 color = Kd * I * diffuse + Ks * I * specular;
+
+
+        gl_FragColor = vec4( color, 1.0 );
+    }
 `;
+
